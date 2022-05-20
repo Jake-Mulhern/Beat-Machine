@@ -32,6 +32,15 @@ active_length = 0
 active_beat = 1
 beat_changed = True
 
+save_menu = False
+load_menu = False
+saved_beats = []
+file = open('my_beats.txt', 'r')
+for line in file:
+    saved_beats.append(line)
+beat_name = ''
+typing = False
+
 ## Load In Sounds
 hi_hat = mixer.Sound('sounds/hi hat.WAV')
 snare = mixer.Sound('sounds/snare.WAV')
@@ -96,6 +105,30 @@ def draw_grid(clicks, beat, active_instruments):
 
     return boxes
 
+def draw_save_menu(beat_name, typing):
+    pygame.draw.rect(screen, black, [0, 0, WIDTH, HEIGHT])
+    menu_text = label_font.render('SAVE MENU: Enter a name for current beat', True, white)
+    saving_btn = pygame.draw.rect(screen, gray, [WIDTH // 2 - 200, HEIGHT * 0.75, 400, 100], 0, 5)
+    screen.blit(menu_text, (400, 40))
+    saving_text = label_font.render('Save Beat', True, white)
+    screen.blit(saving_text, (WIDTH // 2 - 70, HEIGHT * 0.75 + 30))
+    exit_button = pygame.draw.rect(screen, gray, [WIDTH - 200, HEIGHT - 100, 180, 90], 0, 5)
+    exit_text = label_font.render('Close', True, white)
+    screen.blit(exit_text, (WIDTH - 160, HEIGHT - 70))
+    if typing:
+        pygame.draw.rect(screen, dark_gray, [400, 200, 600, 200], 0, 5)
+    entry_rect = pygame.draw.rect(screen, gray, [400, 200, 600, 200], 5, 5)
+    entry_text = label_font.render(f'{beat_name}', True, white)
+    screen.blit(entry_text, (430, 250))
+    return exit_button, saving_btn, entry_rect
+
+def draw_load_menu():
+    pygame.draw.rect(screen, black, [0, 0, WIDTH, HEIGHT])
+    exit_button = pygame.draw.rect(screen, gray, [WIDTH - 200, HEIGHT - 100, 180, 90], 0, 5)
+    exit_text = label_font.render('Close', True, white)
+    screen.blit(exit_text, (WIDTH - 160, HEIGHT - 70))
+    return exit_button
+
 run = True
 while run:
     timer.tick(fps)
@@ -143,12 +176,29 @@ while run:
     screen.blit(add_beat_text, (820, HEIGHT - 140))
     screen.blit(sub_beat_text, (820, HEIGHT - 90))
 
+    ## Clear Board
+    clear_btn = pygame.draw.rect(screen, gray, [1150, HEIGHT - 150, 200, 100], 0, 5)
+    clear_text = label_font.render('Clear Board', True, white)
+    screen.blit(clear_text, (1155, HEIGHT - 120))
+
     ## Instrument Rectangles
     instrument_rects = []
     for i in range(instruments):
         rect = pygame.rect.Rect((0, i * 100), (200, 100))
         instrument_rects.append(rect)
 
+    ## Save/Load
+    save_btn = pygame.draw.rect(screen, gray, [900, HEIGHT - 150, 200, 48], 0, 5)
+    load_btn = pygame.draw.rect(screen, gray, [900, HEIGHT - 100, 200, 48], 0, 5)
+    save_text = label_font.render('Save', True, white)
+    load_text = label_font.render('Load', True, white)
+    screen.blit(save_text, (920, HEIGHT - 143))
+    screen.blit(load_text, (920, HEIGHT - 90))
+
+    if save_menu:
+        exit_btn, saving_btn, entry_rectangle  = draw_save_menu(beat_name, typing)
+    if load_menu:
+        exit_btn = draw_load_menu()
 
     if beat_changed:
         play_notes()
@@ -163,7 +213,7 @@ while run:
                     coords = boxes[i][1]
                     clicked[coords[1]][coords[0]] *= -1
         
-        if event.type == pygame.MOUSEBUTTONUP:
+        if event.type == pygame.MOUSEBUTTONUP and not save_menu and not load_menu:
             if play_pause_btn.collidepoint(event.pos):
                 if playing:
                     playing = False
@@ -181,10 +231,43 @@ while run:
                 beats -= 1
                 for i in range(len(clicked)):
                     clicked[i].pop(-1)
-            
+            elif clear_btn.collidepoint(event.pos):
+                clicked = [[-1 for _ in range(beats)] for _ in range(instruments)]
+            elif save_btn.collidepoint(event.pos):
+                save_menu = True
+            elif load_btn.collidepoint(event.pos):
+                load_menu = True
+
             for i in range(len(instrument_rects)):
                 if instrument_rects[i].collidepoint(event.pos):
                     active_instruments_list[i] *= -1
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if exit_btn.collidepoint(event.pos):
+                save_menu = False
+                load_menu = False
+                playing = True
+                beat_name = ''
+                typing = False
+            elif entry_rectangle.collidepoint(event.pos):
+                if typing:
+                    typing = False
+                elif not typing:
+                    typing = True
+            elif saving_btn.collidepoint(event.pos):
+                file = open('my_beats.txt', 'w')
+                saved_beats.append(f'\nname: {beat_name}, beats: {beats}, bpm: {bpm}, selected: {clicked}')
+                for i in range(len(saved_beats)):
+                    file.write(str(saved_beats[i]))
+                file.close()
+                save_menu = False
+                typing = False
+                beat_name = ''
+
+        if event.type == pygame.TEXTINPUT and typing:
+            beat_name += event.text
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_BACKSPACE and len(beat_name) > 0 and typing:
+                beat_name = beat_name[:-1]
 
     beat_length = (fps * 60) // bpm
 
