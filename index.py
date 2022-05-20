@@ -82,7 +82,10 @@ def draw_grid(clicks, beat, active_instruments):
             if clicks[j][i] == -1:
                 color = gray
             else:
-                color = green
+                if active_instruments_list[j] == 1:
+                    color = green
+                else:
+                    color = dark_gray
             rect = pygame.draw.rect(screen, color, [i * ((WIDTH - 200) // beats) + 205, (j * 100) + 5, ((WIDTH - 200) // beats) - 10, ((HEIGHT - 200)//instruments) - 10], 0, 3)
             pygame.draw.rect(screen, gold, [i * ((WIDTH - 200) // beats) + 200, (j * 100), ((WIDTH - 200) // beats), ((HEIGHT - 200)//instruments)], 5, 5)
             pygame.draw.rect(screen, black, [i * ((WIDTH - 200) // beats) + 200, (j * 100), ((WIDTH - 200) // beats), ((HEIGHT - 200)//instruments)], 2, 5)
